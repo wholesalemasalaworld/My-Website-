@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wholesale Masala World</title>
+    <style>
+        body { background: radial-gradient(circle at top, #1a2a33 0%, #0d1418 100%); color: white; font-family: sans-serif; margin: 0; padding: 20px; text-align: center; }
+        .hidden { display: none; }
+        .container { max-width: 600px; margin: auto; background: rgba(28, 41, 51, 0.95); padding: 20px; border-radius: 15px; border: 1px solid #00bcd4; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin-bottom: 20px; }
+        h1 { color: #f1c40f; text-shadow: 2px 2px #000; }
+        h2 { color: #ff4d4d; }
+        
+        /* Slider Styling */
+        .slider-container { position: relative; width: 100%; height: 250px; border-radius: 10px; overflow: hidden; margin-bottom: 15px; border: 1px solid #00bcd4; }
+        .slider-img { width: 100%; height: 100%; object-fit: cover; display: none; }
+        .slider-img.active { display: block; }
+        .slider-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: white; border: none; padding: 10px; cursor: pointer; font-size: 18px; border-radius: 50%; }
+        .prev { left: 10px; }
+        .next { right: 10px; }
+
+        .product-card { border: 1px solid #00bcd4; padding: 20px; margin: 15px 0; text-align: left; background: rgba(255,255,255,0.05); border-radius: 10px; }
+        input, select, textarea { width: 90%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #00bcd4; background: #0b1418; color: white; box-sizing: border-box; }
+        button.main-btn { width: 90%; padding: 15px; background: #00bcd4; color: #0d1418; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; margin: 10px auto; display: block; }
+        button.main-btn:hover { background: #f1c40f; }
+        .mrp { text-decoration: line-through; color: #ff4d4d; font-size: 14px; }
+        .deal { color: #58d68d; font-size: 22px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>Wholesale Masala World</h1>
+
+    <div id="login-section" class="container">
+        <h2>Verify to Enter</h2>
+        <input type="text" id="user-contact" placeholder="Mobile or Email">
+        <button class="main-btn" onclick="showOtp()">Send Code</button>
+        <div id="otp-box" class="hidden">
+            <input type="text" placeholder="Code (1234)">
+            <button class="main-btn" onclick="verifyOtp()">Verify</button>
+        </div>
+    </div>
+
+    <div id="catalog-section" class="hidden">
+        <div id="masala-list"></div>
+    </div>
+
+    <div id="order-section" class="container hidden">
+        <h2 id="order-title" style="color:#f1c40f">Order Details</h2>
+        <form action="https://formspree.io/f/xrelkgbz" method="POST">
+            <input type="hidden" id="selected-item" name="Product">
+            <input type="hidden" id="selected-weight" name="Weight">
+            <input type="text" name="Name" placeholder="Full Name" required>
+            <textarea name="Address" placeholder="Address" required></textarea>
+            <input type="text" name="Pincode" placeholder="Pin Code" required>
+            <select name="Payment">
+                <option value="UPI">UPI</option>
+                <option value="COD">COD (30% Advance)</option>
+            </select>
+            <button type="submit" class="main-btn" style="background:#58d68d">Place Order</button>
+        </form>
+    </div>
+
+<script>
+    // HAR PRODUCT KI MULTIPLE PHOTOS YAHAN DAALEIN
+    const products = [
+        { 
+            name: "Premium Jeera", 
+            price: 750, 
+            images: [
+                "https://via.placeholder.com/400x250?text=Jeera+Photo+1", 
+                "https://via.placeholder.com/400x250?text=Jeera+Photo+2",
+                "https://via.placeholder.com/400x250?text=Jeera+Packet"
+            ] 
+        },
+        { 
+            name: "Haldi Powder", 
+            price: 400, 
+            images: [
+                "https://via.placeholder.com/400x250?text=Haldi+Photo+1", 
+                "https://via.placeholder.com/400x250?text=Haldi+Process"
+            ] 
+        }
+    ];
+
+    function renderProducts() {
+        const list = document.getElementById('masala-list');
+        list.innerHTML = "";
+        products.forEach((p, pIndex) => {
+            let final = p.price - (p.price * 0.35);
+            let imgHTML = p.images.map((img, i) => `<img src="${img}" class="slider-img img-${pIndex} ${i===0?'active':''}">`).join('');
+            
+            list.innerHTML += `
+                <div class="product-card container">
+                    <div class="slider-container">
+                        ${imgHTML}
+                        <button class="slider-btn prev" onclick="changeImg(${pIndex}, -1)">❮</button>
+                        <button class="slider-btn next" onclick="changeImg(${pIndex}, 1)">❯</button>
+                    </div>
+                    <h2 style="color:#ff4d4d">${p.name}</h2>
+                    <p class="mrp">MRP: ₹${p.price}/kg</p>
+                    <p class="deal">Rate: ₹${final.toFixed(0)}/kg</p>
+                    <select id="weight-${pIndex}"><option value="6kg">6kg</option><option value="10kg">10kg</option></select>
+                    <button class="main-btn" onclick="openOrder('${p.name}', ${pIndex})">Buy Now</button>
+                </div>`;
+        });
+    }
+
+    function changeImg(pIndex, step) {
+        let imgs = document.querySelectorAll(`.img-${pIndex}`);
+        let activeIndex = Array.from(imgs).findIndex(img => img.classList.contains('active'));
+        imgs[activeIndex].classList.remove('active');
+        let nextIndex = (activeIndex + step + imgs.length) % imgs.length;
+        imgs[nextIndex].classList.add('active');
+    }
+
+    // Existing functions...
+    function showOtp() { document.getElementById('otp-box').classList.remove('hidden'); }
+    function verifyOtp() { document.getElementById('login-section').classList.add('hidden'); document.getElementById('catalog-section').classList.remove('hidden'); renderProducts(); }
+    function openOrder(name, pIndex) {
+        document.getElementById('catalog-section').classList.add('hidden');
+        document.getElementById('order-section').classList.remove('hidden');
+        document.getElementById('selected-item').value = name;
+        document.getElementById('selected-weight').value = document.getElementById('weight-'+pIndex).value;
+        window.scrollTo(0,0);
+    }
+</script>
+</body>
+</html>
+
