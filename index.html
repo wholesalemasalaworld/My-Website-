@@ -11,75 +11,71 @@
         h1 { color: #f1c40f; text-shadow: 2px 2px #000; }
         h2 { color: #ff4d4d; }
         
-        /* Slider Styling */
         .slider-container { position: relative; width: 100%; height: 250px; border-radius: 10px; overflow: hidden; margin-bottom: 15px; border: 1px solid #00bcd4; }
         .slider-img { width: 100%; height: 100%; object-fit: cover; display: none; }
         .slider-img.active { display: block; }
         .slider-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: white; border: none; padding: 10px; cursor: pointer; font-size: 18px; border-radius: 50%; }
-        .prev { left: 10px; }
-        .next { right: 10px; }
+        .prev { left: 10px; } .next { right: 10px; }
 
         .product-card { border: 1px solid #00bcd4; padding: 20px; margin: 15px 0; text-align: left; background: rgba(255,255,255,0.05); border-radius: 10px; }
-        input, select, textarea { width: 90%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #00bcd4; background: #0b1418; color: white; box-sizing: border-box; }
-        button.main-btn { width: 90%; padding: 15px; background: #00bcd4; color: #0d1418; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; margin: 10px auto; display: block; }
-        button.main-btn:hover { background: #f1c40f; }
+        input, select, textarea { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #00bcd4; background: #0b1418; color: white; box-sizing: border-box; }
+        button.main-btn { width: 100%; padding: 15px; background: #00bcd4; color: #0d1418; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; margin: 10px auto; display: block; }
         .mrp { text-decoration: line-through; color: #ff4d4d; font-size: 14px; }
         .deal { color: #58d68d; font-size: 22px; font-weight: bold; }
+        
+        #qr-display img { width: 200px; height: 200px; margin: 15px 0; border: 5px solid white; border-radius: 10px; }
+        .payment-note { color: #f1c40f; font-size: 13px; margin-bottom: 10px; }
     </style>
 </head>
-<body>
+<body onload="renderProducts()">
 
     <h1>Wholesale Masala World</h1>
 
-    <div id="login-section" class="container">
-        <h2>Verify to Enter</h2>
-        <input type="text" id="user-contact" placeholder="Mobile or Email">
-        <button class="main-btn" onclick="showOtp()">Send Code</button>
-        <div id="otp-box" class="hidden">
-            <input type="text" placeholder="Code (1234)">
-            <button class="main-btn" onclick="verifyOtp()">Verify</button>
-        </div>
-    </div>
-
-    <div id="catalog-section" class="hidden">
+    <div id="catalog-section">
         <div id="masala-list"></div>
     </div>
 
     <div id="order-section" class="container hidden">
         <h2 id="order-title" style="color:#f1c40f">Order Details</h2>
-        <form action="https://formspree.io/f/xrelkgbz" method="POST">
+        <form action="https://formspree.io/f/xrelkgbz" method="POST" enctype="multipart/form-data">
             <input type="hidden" id="selected-item" name="Product">
             <input type="hidden" id="selected-weight" name="Weight">
+            
             <input type="text" name="Name" placeholder="Full Name" required>
-            <textarea name="Address" placeholder="Address" required></textarea>
+            <textarea name="Address" placeholder="Full Address" required></textarea>
             <input type="text" name="Pincode" placeholder="Pin Code" required>
-            <select name="Payment">
-                <option value="UPI">UPI</option>
-                <option value="COD">COD (30% Advance)</option>
+            
+            <p class="payment-note">Note: For COD, 30% advance is mandatory.</p>
+            <select name="Payment" id="payment-method" onchange="togglePaymentDetails()" required>
+                <option value="">Select Payment Method</option>
+                <option value="UPI">Full UPI Payment (QR Code)</option>
+                <option value="COD">COD (30% Advance via UPI)</option>
             </select>
-            <button type="submit" class="main-btn" style="background:#58d68d">Place Order</button>
+
+            <div id="qr-display" class="hidden">
+                <p style="color:#58d68d">Scan QR to Pay</p>
+                <img src="https://via.placeholder.com/200?text=Scan+to+Pay" alt="UPI QR">
+                <input type="text" name="UTR_Number" placeholder="Enter UTR / Transaction ID">
+                <p style="font-size: 12px;">Upload Screenshot (Optional):</p>
+                <input type="file" name="Screenshot" accept="image/*">
+            </div>
+
+            <button type="submit" class="main-btn" style="background:#58d68d">Confirm & Order on WhatsApp</button>
+            <button type="button" onclick="location.reload()" style="background:#777; width: 100%; border:none; padding:10px; color:white; border-radius:8px; cursor:pointer;">Cancel</button>
         </form>
     </div>
 
 <script>
-    // HAR PRODUCT KI MULTIPLE PHOTOS YAHAN DAALEIN
     const products = [
         { 
             name: "Premium Jeera", 
             price: 750, 
-            images: [
-                "https://via.placeholder.com/400x250?text=Jeera+Photo+1", 
-                "https://via.placeholder.com/400x250?text=Jeera+Photo+2",
-                "https://via.placeholder.com/400x250?text=Jeera+Packet"
-            ] 
+            images: ["https://via.placeholder.com/400x250?text=Jeera+1", "https://via.placeholder.com/400x250?text=Jeera+2"] 
         },
         { 
             name: "Haldi Powder", 
             price: 400, 
-            images: [
-                "https://via.placeholder.com/400x250?text=Haldi+Photo+1", 
-                "https://via.placeholder.com/400x250?text=Haldi+Process"
-            ] 
+            images: ["https://via.placeholder.com/400x250?text=Haldi+1"] 
         }
     ];
 
@@ -92,15 +88,18 @@
             
             list.innerHTML += `
                 <div class="product-card container">
-                    <div class="slider-container">
-                        ${imgHTML}
+                    <div class="slider-container">${imgHTML}
                         <button class="slider-btn prev" onclick="changeImg(${pIndex}, -1)">❮</button>
                         <button class="slider-btn next" onclick="changeImg(${pIndex}, 1)">❯</button>
                     </div>
                     <h2 style="color:#ff4d4d">${p.name}</h2>
                     <p class="mrp">MRP: ₹${p.price}/kg</p>
                     <p class="deal">Rate: ₹${final.toFixed(0)}/kg</p>
-                    <select id="weight-${pIndex}"><option value="6kg">6kg</option><option value="10kg">10kg</option></select>
+                    <select id="weight-${pIndex}">
+                        <option value="6kg">6kg</option>
+                        <option value="10kg">10kg</option>
+                        <option value="15kg">15kg</option>
+                    </select>
                     <button class="main-btn" onclick="openOrder('${p.name}', ${pIndex})">Buy Now</button>
                 </div>`;
         });
@@ -114,9 +113,6 @@
         imgs[nextIndex].classList.add('active');
     }
 
-    // Existing functions...
-    function showOtp() { document.getElementById('otp-box').classList.remove('hidden'); }
-    function verifyOtp() { document.getElementById('login-section').classList.add('hidden'); document.getElementById('catalog-section').classList.remove('hidden'); renderProducts(); }
     function openOrder(name, pIndex) {
         document.getElementById('catalog-section').classList.add('hidden');
         document.getElementById('order-section').classList.remove('hidden');
@@ -124,7 +120,29 @@
         document.getElementById('selected-weight').value = document.getElementById('weight-'+pIndex).value;
         window.scrollTo(0,0);
     }
+
+    function togglePaymentDetails() {
+        const method = document.getElementById('payment-method').value;
+        const qrBox = document.getElementById('qr-display');
+        if(method === 'UPI' || method === 'COD') {
+            qrBox.classList.remove('hidden');
+        } else {
+            qrBox.classList.add('hidden');
+        }
+    }
+
+    // WhatsApp Redirect on Form Submit
+    document.querySelector('form').onsubmit = function() {
+        const name = document.querySelector('input[name="Name"]').value;
+        const product = document.getElementById('selected-item').value;
+        const weight = document.getElementById('selected-weight').value;
+        const whatsappNumber = "918460722331";
+        const message = `Hello, I want to place an order:%0AName: ${name}%0AProduct: ${product}%0AWeight: ${weight}%0AOrder submitted on website.`;
+        
+        setTimeout(() => {
+            window.location.href = `https://wa.me/${whatsappNumber}?text=${message}`;
+        }, 1000);
+    };
 </script>
 </body>
 </html>
-
