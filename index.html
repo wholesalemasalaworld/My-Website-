@@ -3,146 +3,164 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wholesale Masala World</title>
+    <title>Wholesale Masala World | Cart System</title>
     <style>
         body { background: radial-gradient(circle at top, #1a2a33 0%, #0d1418 100%); color: white; font-family: sans-serif; margin: 0; padding: 20px; text-align: center; }
         .hidden { display: none; }
-        .container { max-width: 600px; margin: auto; background: rgba(28, 41, 51, 0.95); padding: 20px; border-radius: 15px; border: 1px solid #00bcd4; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin-bottom: 20px; }
+        .container { max-width: 800px; margin: auto; background: rgba(28, 41, 51, 0.95); padding: 20px; border-radius: 15px; border: 1px solid #00bcd4; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin-bottom: 20px; }
         h1 { color: #f1c40f; text-shadow: 2px 2px #000; }
-        h2 { color: #ff4d4d; }
         
-        .slider-container { position: relative; width: 100%; height: 250px; border-radius: 10px; overflow: hidden; margin-bottom: 15px; border: 1px solid #00bcd4; }
-        .slider-img { width: 100%; height: 100%; object-fit: cover; display: none; }
-        .slider-img.active { display: block; }
-        .slider-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: white; border: none; padding: 10px; cursor: pointer; font-size: 18px; border-radius: 50%; }
-        .prev { left: 10px; } .next { right: 10px; }
-
-        .product-card { border: 1px solid #00bcd4; padding: 20px; margin: 15px 0; text-align: left; background: rgba(255,255,255,0.05); border-radius: 10px; }
+        /* Product Grid */
+        .product-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 20px; }
+        .product-card { background: rgba(255,255,255,0.05); border: 1px solid #00bcd4; border-radius: 12px; padding: 15px; text-align: left; }
+        .product-img { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; }
+        
+        /* Cart Sidebar/Section */
+        .cart-container { position: fixed; top: 20px; right: 20px; background: #f1c40f; color: #000; padding: 10px 20px; border-radius: 50px; font-weight: bold; cursor: pointer; z-index: 1000; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .cart-modal { background: #122d33; border: 2px solid #00bcd4; padding: 20px; border-radius: 15px; margin-top: 20px; text-align: left; }
+        
         input, select, textarea { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #00bcd4; background: #0b1418; color: white; box-sizing: border-box; }
-        button.main-btn { width: 100%; padding: 15px; background: #00bcd4; color: #0d1418; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; margin: 10px auto; display: block; }
-        .mrp { text-decoration: line-through; color: #ff4d4d; font-size: 14px; }
-        .deal { color: #58d68d; font-size: 22px; font-weight: bold; }
+        .btn-add { background: #00bcd4; color: #000; border: none; padding: 10px; border-radius: 5px; width: 100%; font-weight: bold; cursor: pointer; }
+        .btn-buy { background: #58d68d; color: #000; border: none; padding: 15px; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; font-size: 18px; }
         
-        #qr-display img { width: 200px; height: 200px; margin: 15px 0; border: 5px solid white; border-radius: 10px; }
-        .payment-note { color: #f1c40f; font-size: 13px; margin-bottom: 10px; }
+        .mrp { text-decoration: line-through; color: #ff4d4d; font-size: 12px; }
+        .price { color: #58d68d; font-size: 18px; font-weight: bold; }
+        #qr-display img { width: 180px; height: 180px; border: 4px solid white; margin: 10px 0; }
     </style>
 </head>
 <body onload="renderProducts()">
 
-    <h1>Wholesale Masala World</h1>
-
-    <div id="catalog-section">
-        <div id="masala-list"></div>
+    <div class="cart-container" onclick="showCartSection()">
+        🛒 Cart: <span id="cart-count">0</span> Items
     </div>
 
-    <div id="order-section" class="container hidden">
-        <h2 id="order-title" style="color:#f1c40f">Order Details</h2>
-        <form action="https://formspree.io/f/xrelkgbz" method="POST" enctype="multipart/form-data">
-            <input type="hidden" id="selected-item" name="Product">
-            <input type="hidden" id="selected-weight" name="Weight">
-            
+    <h1>Wholesale Masala World</h1>
+    <p style="color: #00bcd4;">Premium Quality Spices at Wholesale Rates</p>
+
+    <div id="catalog-page">
+        <div class="product-grid" id="product-list"></div>
+    </div>
+
+    <div id="cart-section" class="container hidden">
+        <h2 style="color: #f1c40f;">Your Shopping Cart</h2>
+        <div id="cart-items-list"></div>
+        <hr border="1" color="#00bcd4">
+        <h3 style="text-align: right;">Total Amount: ₹<span id="total-price">0</span></h3>
+        
+        <form action="https://formspree.io/f/xrelkgbz" method="POST" onsubmit="return handleOrder(event)">
+            <input type="hidden" name="Order_Details" id="hidden-order-data">
+            <input type="hidden" name="Total_Bill" id="hidden-total-bill">
+
             <input type="text" name="Name" placeholder="Full Name" required>
-            <textarea name="Address" placeholder="Full Address" required></textarea>
+            <textarea name="Address" placeholder="Full Delivery Address" required></textarea>
             <input type="text" name="Pincode" placeholder="Pin Code" required>
-            
-            <p class="payment-note">Note: For COD, 30% advance is mandatory.</p>
-            <select name="Payment" id="payment-method" onchange="togglePaymentDetails()" required>
+
+            <select name="Payment" id="pay-method" onchange="toggleQR()" required>
                 <option value="">Select Payment Method</option>
                 <option value="UPI">Full UPI Payment (QR Code)</option>
-                <option value="COD">COD (30% Advance via UPI)</option>
+                <option value="COD">COD (30% Advance Mandatory)</option>
             </select>
 
-            <div id="qr-display" class="hidden">
-                <p style="color:#58d68d">Scan QR to Pay</p>
-                <img src="https://via.placeholder.com/200?text=Scan+to+Pay" alt="UPI QR">
+            <div id="qr-box" class="hidden" style="text-align: center;">
+                <p style="color:#f1c40f">Scan to Pay Advance/Full Amount</p>
+                <img src="https://via.placeholder.com/200?text=Your+QR+Code" alt="QR Code">
                 <input type="text" name="UTR_Number" placeholder="Enter UTR / Transaction ID">
-                <p style="font-size: 12px;">Upload Screenshot (Optional):</p>
-                <input type="file" name="Screenshot" accept="image/*">
             </div>
 
-            <button type="submit" class="main-btn" style="background:#58d68d">Confirm & Order on WhatsApp</button>
-            <button type="button" onclick="location.reload()" style="background:#777; width: 100%; border:none; padding:10px; color:white; border-radius:8px; cursor:pointer;">Cancel</button>
+            <button type="submit" class="btn-buy">Place Order on WhatsApp</button>
+            <button type="button" onclick="hideCartSection()" style="background: none; color: white; border: none; cursor: pointer; margin-top: 10px;">← Back to Shopping</button>
         </form>
     </div>
 
-<script>
-    const products = [
-        { 
-            name: "Premium Jeera", 
-            price: 750, 
-            images: ["https://via.placeholder.com/400x250?text=Jeera+1", "https://via.placeholder.com/400x250?text=Jeera+2"] 
-        },
-        { 
-            name: "Haldi Powder", 
-            price: 400, 
-            images: ["https://via.placeholder.com/400x250?text=Haldi+1"] 
-        }
-    ];
+    <script>
+        const products = [
+            { id: 1, name: "Premium Jeera", mrp: 750, img: "https://via.placeholder.com/300x180?text=Jeera" },
+            { id: 2, name: "Shahi Loang", mrp: 1100, img: "https://via.placeholder.com/300x180?text=Loang" },
+            { id: 3, name: "Black Pepper", mrp: 950, img: "https://via.placeholder.com/300x180?text=Pepper" },
+            { id: 4, name: "Elaichi Green", mrp: 3200, img: "https://via.placeholder.com/300x180?text=Elaichi" }
+        ];
 
-    function renderProducts() {
-        const list = document.getElementById('masala-list');
-        list.innerHTML = "";
-        products.forEach((p, pIndex) => {
-            let final = p.price - (p.price * 0.35);
-            let imgHTML = p.images.map((img, i) => `<img src="${img}" class="slider-img img-${pIndex} ${i===0?'active':''}">`).join('');
+        let cart = [];
+        const discount = 0.35; // 35% Off
+
+        function renderProducts() {
+            const list = document.getElementById('product-list');
+            products.forEach(p => {
+                let salePrice = p.mrp - (p.mrp * discount);
+                list.innerHTML += `
+                    <div class="product-card">
+                        <img src="${p.img}" class="product-img">
+                        <h3 style="color:#ff4d4d; margin:5px 0;">${p.name}</h3>
+                        <p class="mrp">MRP: ₹${p.mrp}/kg</p>
+                        <p class="price">Wholesale: ₹${salePrice.toFixed(0)}/kg</p>
+                        <select id="qty-${p.id}">
+                            <option value="6">6 KG (Min)</option>
+                            <option value="10">10 KG</option>
+                            <option value="15">15 KG</option>
+                        </select>
+                        <button class="btn-add" onclick="addToCart(${p.id})">Add to Cart</button>
+                    </div>`;
+            });
+        }
+
+        function addToCart(id) {
+            const product = products.find(p => p.id === id);
+            const qty = document.getElementById(`qty-${id}`).value;
+            const salePrice = product.mrp - (product.mrp * discount);
             
-            list.innerHTML += `
-                <div class="product-card container">
-                    <div class="slider-container">${imgHTML}
-                        <button class="slider-btn prev" onclick="changeImg(${pIndex}, -1)">❮</button>
-                        <button class="slider-btn next" onclick="changeImg(${pIndex}, 1)">❯</button>
-                    </div>
-                    <h2 style="color:#ff4d4d">${p.name}</h2>
-                    <p class="mrp">MRP: ₹${p.price}/kg</p>
-                    <p class="deal">Rate: ₹${final.toFixed(0)}/kg</p>
-                    <select id="weight-${pIndex}">
-                        <option value="6kg">6kg</option>
-                        <option value="10kg">10kg</option>
-                        <option value="15kg">15kg</option>
-                    </select>
-                    <button class="main-btn" onclick="openOrder('${p.name}', ${pIndex})">Buy Now</button>
-                </div>`;
-        });
-    }
-
-    function changeImg(pIndex, step) {
-        let imgs = document.querySelectorAll(`.img-${pIndex}`);
-        let activeIndex = Array.from(imgs).findIndex(img => img.classList.contains('active'));
-        imgs[activeIndex].classList.remove('active');
-        let nextIndex = (activeIndex + step + imgs.length) % imgs.length;
-        imgs[nextIndex].classList.add('active');
-    }
-
-    function openOrder(name, pIndex) {
-        document.getElementById('catalog-section').classList.add('hidden');
-        document.getElementById('order-section').classList.remove('hidden');
-        document.getElementById('selected-item').value = name;
-        document.getElementById('selected-weight').value = document.getElementById('weight-'+pIndex).value;
-        window.scrollTo(0,0);
-    }
-
-    function togglePaymentDetails() {
-        const method = document.getElementById('payment-method').value;
-        const qrBox = document.getElementById('qr-display');
-        if(method === 'UPI' || method === 'COD') {
-            qrBox.classList.remove('hidden');
-        } else {
-            qrBox.classList.add('hidden');
+            cart.push({ name: product.name, qty: qty, price: (salePrice * qty).toFixed(0) });
+            updateCartCount();
+            alert(`${product.name} added to cart!`);
         }
-    }
 
-    // WhatsApp Redirect on Form Submit
-    document.querySelector('form').onsubmit = function() {
-        const name = document.querySelector('input[name="Name"]').value;
-        const product = document.getElementById('selected-item').value;
-        const weight = document.getElementById('selected-weight').value;
-        const whatsappNumber = "918460722331";
-        const message = `Hello, I want to place an order:%0AName: ${name}%0AProduct: ${product}%0AWeight: ${weight}%0AOrder submitted on website.`;
-        
-        setTimeout(() => {
-            window.location.href = `https://wa.me/${whatsappNumber}?text=${message}`;
-        }, 1000);
-    };
-</script>
+        function updateCartCount() {
+            document.getElementById('cart-count').innerText = cart.length;
+        }
+
+        function showCartSection() {
+            if(cart.length === 0) { alert("Cart is empty!"); return; }
+            document.getElementById('catalog-page').classList.add('hidden');
+            document.getElementById('cart-section').classList.remove('hidden');
+            
+            let itemsHtml = "";
+            let total = 0;
+            cart.forEach((item, index) => {
+                itemsHtml += `<p>✅ ${item.name} - ${item.qty}kg (₹${item.price}) <button onclick="removeItem(${index})" style="color:red; background:none; border:none; cursor:pointer;">✖</button></p>`;
+                total += parseInt(item.price);
+            });
+            document.getElementById('cart-items-list').innerHTML = itemsHtml;
+            document.getElementById('total-price').innerText = total;
+            document.getElementById('hidden-total-bill').value = total;
+            document.getElementById('hidden-order-data').value = JSON.stringify(cart);
+        }
+
+        function removeItem(index) {
+            cart.splice(index, 1);
+            if(cart.length === 0) hideCartSection();
+            else showCartSection();
+            updateCartCount();
+        }
+
+        function hideCartSection() {
+            document.getElementById('catalog-page').classList.remove('hidden');
+            document.getElementById('cart-section').classList.add('hidden');
+        }
+
+        function toggleQR() {
+            const method = document.getElementById('pay-method').value;
+            document.getElementById('qr-box').classList.toggle('hidden', method === "");
+        }
+
+        function handleOrder(e) {
+            const name = document.querySelector('input[name="Name"]').value;
+            const total = document.getElementById('total-price').innerText;
+            const msg = `New Order from ${name}: Total Bill ₹${total}. Check Email for full list.`;
+            
+            setTimeout(() => {
+                window.location.href = `https://wa.me/918460722331?text=${encodeURIComponent(msg)}`;
+            }, 1000);
+            return true; 
+        }
+    </script>
 </body>
 </html>
