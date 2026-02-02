@@ -11,7 +11,7 @@
         header { background: #1a2a33; color: #f1c40f; padding: 15px; text-align: center; position: sticky; top: 0; z-index: 100; }
         .container { max-width: 500px; margin: auto; padding: 10px; }
         .product-card { border: 1px solid #eee; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); overflow: hidden; background: #fff; }
-        .img-box { position: relative; width: 100%; height: 220px; background: #f4f4f4; overflow-x: auto; display: flex; scroll-snap-type: x mandatory; }
+        .img-box { position: relative; width: 100%; height: 220px; background: #f4f4f4; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; }
         .img-box img { width: 100%; height: 100%; object-fit: cover; flex-shrink: 0; scroll-snap-align: start; }
         .details { padding: 12px; }
         .p-name { color: #ff4d4d; font-size: 1.2rem; font-weight: bold; }
@@ -21,7 +21,8 @@
         .btn-buy { background: #58d68d; padding: 15px; font-size: 1.1rem; margin-top: 10px; color: #000; }
         .cart-bar { position: fixed; bottom: 15px; right: 15px; background: #00bcd4; color: #fff; padding: 12px 20px; border-radius: 50px; font-weight: bold; z-index: 99; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
         #cart-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 200; overflow-y: auto; padding: 15px; }
-        .accounts-note { background: #fff9e6; border: 1px solid #f1c40f; padding: 15px; border-radius: 10px; margin: 15px 0; text-align: left; }
+        .bank-info { background: #f0fbff; border: 1px solid #00bcd4; padding: 15px; border-radius: 10px; margin-top: 10px; }
+        .scroll-hint { font-size: 0.7rem; color: #888; text-align: center; margin-top: 5px; }
     </style>
 </head>
 <body onload="renderProducts()">
@@ -36,28 +37,41 @@
 
 <div id="cart-modal" class="hidden">
     <button onclick="window.history.back()" style="background:none; border:none; color:#00bcd4; font-size:1rem; padding:10px 0;">← Back</button>
-    <h2 style="margin:10px 0;">Finalize Order</h2>
+    <h2 style="margin:10px 0;">Billing Details</h2>
     <div id="items-list"></div>
     <h3 style="text-align:right; margin:15px 0; border-top:1px solid #eee; padding-top:10px;">Total: ₹<span id="total">0</span></h3>
     
-    <div class="accounts-note">
-        <p>✅ <strong>COD & UPI Available</strong></p>
-        <p>📞 Aapko abhi Accounts Dept. se connect kiya jayega.</p>
-    </div>
-
     <form id="orderForm">
         <input type="text" id="custName" name="Name" placeholder="Full Name" required>
-        <textarea id="custAddr" name="Address" placeholder="Delivery Address" rows="3" required></textarea>
-        <input type="text" id="custPin" name="Pincode" placeholder="Pincode" pattern="[0-9]{6}" required>
+        <textarea id="custAddr" name="Address" placeholder="Full Delivery Address" rows="2" required></textarea>
+        <input type="text" id="custPin" name="Pincode" placeholder="6-Digit Pincode" pattern="[0-9]{6}" required>
         
-        <button type="submit" id="submitBtn" class="btn btn-buy">Send & Connect to WhatsApp</button>
+        <h4 style="margin-top:10px;">Payment: COD, UPI & Bank Available</h4>
+        <div class="bank-info">
+            <p style="font-size:0.8rem; margin-bottom:5px; color:#555;">Bank Details for Record:</p>
+            <input list="indian-banks" id="bankName" name="Bank_Name" placeholder="Search Bank (SBI, HDFC, etc.)">
+            <datalist id="indian-banks">
+                <option value="State Bank of India"><option value="HDFC Bank"><option value="ICICI Bank"><option value="Axis Bank"><option value="Punjab National Bank"><option value="Bank of Baroda"><option value="Canara Bank"><option value="Kotak Mahindra Bank">
+            </datalist>
+            <input type="text" id="accHolder" name="Account_Holder" placeholder="Account Holder Name">
+            <input type="text" id="accNum" name="Account_Number" placeholder="Account Number">
+            <input type="text" id="ifsc" name="IFSC_Code" placeholder="IFSC Code">
+        </div>
+        <button type="submit" id="submitBtn" class="btn btn-buy">Order & Connect to WhatsApp</button>
     </form>
 </div>
 
 <script>
     const products = [
-        { name: "Premium Jeera", mrp: 750, imgs: ["https://images.unsplash.com/photo-1599311650742-99052069b2d9?w=400"] },
-        { name: "Shahi Loang", mrp: 1100, imgs: ["https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=400"] },
+        { 
+            name: "Shahi Jeera", 
+            mrp: 850, 
+            imgs: [
+                "https://i.ibb.co/NgL1xGhX/shahi-jeera-1.jpg", 
+                "https://i.ibb.co/JRdKZzNR/shahi-jeera-2.jpg"
+            ] 
+        },
+        { name: "Premium Loang", mrp: 1100, imgs: ["https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=400"] },
         { name: "Green Elaichi", mrp: 3200, imgs: ["https://images.unsplash.com/photo-1601004890684-d8cbf643f5f2?w=400"] },
         { name: "Kaali Mirch", mrp: 950, imgs: ["https://images.unsplash.com/photo-1596450514735-244027706da5?w=400"] }
     ];
@@ -69,8 +83,10 @@
         const list = document.getElementById('masala-list');
         products.forEach((p, idx) => {
             let sale = Math.round(p.mrp * 0.65);
+            let imgHTML = p.imgs.map(s => `<img src="${s}" loading="lazy">`).join('');
             list.innerHTML += `<div class="product-card">
-                <div class="img-box"><img src="${p.imgs[0]}" loading="lazy"></div>
+                <div class="img-box">${imgHTML}</div>
+                <p class="scroll-hint">↔ Swipe left/right for more photos</p>
                 <div class="details"><p class="p-name">${p.name}</p><p class="p-price">₹${sale}/kg</p>
                 <select id="qty-${idx}"><option value="6">6kg</option><option value="10">10kg</option></select>
                 <button class="btn" onclick="add(${idx})">Add to Order</button></div></div>`;
@@ -82,7 +98,7 @@
         const p = products[idx];
         cart.push({ n: p.name, q: qty, t: Math.round(p.mrp * 0.65) * qty });
         document.getElementById('count').innerText = cart.length;
-        alert("Added!");
+        alert(p.name + " Added!");
     }
 
     function openCart() {
@@ -97,40 +113,6 @@
 
     function del(idx) { cart.splice(idx,1); if(!cart.length) window.history.back(); else openCart(); }
 
-    // EMAIL + WHATSAPP LOGIC
     document.getElementById('orderForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const btn = document.getElementById('submitBtn');
-        btn.innerText = "Processing Order...";
-        btn.disabled = true;
-
-        const name = document.getElementById('custName').value;
-        const addr = document.getElementById('custAddr').value;
-        const pin = document.getElementById('custPin').value;
-        const total = document.getElementById('total').innerText;
-        const orderSummary = cart.map(i => `${i.n} (${i.q}kg)`).join(', ');
-
-        // 1. Send Email via Formspree
-        fetch('https://formspree.io/f/xrelkgbz', {
-            method: 'POST',
-            body: JSON.stringify({
-                Customer_Name: name,
-                Address: addr,
-                Pincode: pin,
-                Order_Items: orderSummary,
-                Total_Estimate: total
-            }),
-            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
-        }).then(response => {
-            // 2. Redirect to WhatsApp after Email is sent
-            const msg = encodeURIComponent(`Naya Order Aaya Hai!\n\nNaam: ${name}\nAddress: ${addr}\nOrder: ${orderSummary}\nTotal: ₹${total}\n\nAccounts Dept. se jodein.`);
-            window.location.href = `https://wa.me/918460722331?text=${msg}`;
-        }).catch(error => {
-            alert("Error sending order. Please try again.");
-            btn.disabled = false;
-            btn.innerText = "Connect with Accounts Dept.";
-        });
-    });
-</script>
-</body>
-</html>
+        e
+    
