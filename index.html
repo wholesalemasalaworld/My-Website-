@@ -5,128 +5,149 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Wholesale Masala World</title>
     <style>
-        /* Speed Optimized CSS */
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
-        body { background: #fff; color: #1a2a33; font-family: -apple-system, sans-serif; line-height: 1.5; }
+        body { background: #fff; color: #1a2a33; font-family: -apple-system, sans-serif; }
         .hidden { display: none !important; }
-        
         header { background: #1a2a33; color: #f1c40f; padding: 15px; text-align: center; position: sticky; top: 0; z-index: 100; }
         .container { max-width: 500px; margin: auto; padding: 10px; }
-
-        /* Performance Optimized Product Card */
-        .product-card { border: 1px solid #eee; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); overflow: hidden; }
-        .img-box { position: relative; width: 100%; height: 200px; background: #f4f4f4; }
-        .slider-img { width: 100%; height: 100%; object-fit: cover; display: none; }
-        .slider-img.active { display: block; }
-        
-        .slider-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.3); color: #fff; border: none; padding: 8px; border-radius: 50%; cursor: pointer; }
-        .prev { left: 5px; } .next { right: 5px; }
-
+        .product-card { border: 1px solid #eee; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); overflow: hidden; background: #fff; }
+        .img-box { position: relative; width: 100%; height: 220px; background: #f4f4f4; overflow-x: auto; display: flex; scroll-snap-type: x mandatory; }
+        .img-box img { width: 100%; height: 100%; object-fit: cover; flex-shrink: 0; scroll-snap-align: start; }
         .details { padding: 12px; }
-        .p-name { color: #ff4d4d; font-size: 1.1rem; font-weight: bold; }
-        .p-price { color: #58d68d; font-size: 1.2rem; font-weight: bold; margin: 4px 0; }
-        
-        select, input, textarea { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #00bcd4; border-radius: 6px; font-size: 16px; background: #fff; }
-        
-        .btn { background: #1a2a33; color: #fff; border: none; padding: 12px; border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer; }
+        .p-name { color: #ff4d4d; font-size: 1.2rem; font-weight: bold; }
+        .p-price { color: #58d68d; font-size: 1.3rem; font-weight: bold; margin: 5px 0; }
+        .mrp { text-decoration: line-through; color: #888; font-size: 0.9rem; }
+        select, input, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #00bcd4; border-radius: 8px; font-size: 16px; }
+        .btn { background: #1a2a33; color: #fff; border: none; padding: 12px; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; }
         .btn-buy { background: #58d68d; padding: 15px; font-size: 1.1rem; margin-top: 10px; }
-
-        .cart-bar { position: fixed; bottom: 15px; right: 15px; background: #00bcd4; color: #fff; padding: 10px 18px; border-radius: 30px; font-weight: bold; z-index: 99; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-
+        .cart-bar { position: fixed; bottom: 15px; right: 15px; background: #00bcd4; color: #fff; padding: 12px 20px; border-radius: 50px; font-weight: bold; z-index: 99; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
         #cart-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 200; overflow-y: auto; padding: 15px; }
+        .scroll-hint { font-size: 0.7rem; color: #888; text-align: center; padding: 2px; }
     </style>
 </head>
 <body onload="renderProducts()">
 
 <header><h1>Wholesale Masala World</h1></header>
 
-<div class="cart-bar" onclick="openCart()">🛒 <span id="count">0</span> Items | Buy</div>
+<div class="cart-bar" onclick="openCart()">🛒 <span id="count">0</span> Items | Checkout</div>
 
 <div class="container" id="main-view">
     <div id="masala-list"></div>
 </div>
 
 <div id="cart-modal" class="hidden">
-    <button onclick="window.history.back()" style="background:none; border:none; color:#00bcd4; font-size:1rem;">← Back</button>
-    <h2 style="margin:15px 0;">Order Summary</h2>
+    <button onclick="window.history.back()" style="background:none; border:none; color:#00bcd4; font-size:1rem; padding:10px 0;">← Back to Shopping</button>
+    <h2 style="margin:10px 0;">Your Cart</h2>
     <div id="items-list"></div>
-    <h3 style="text-align:right; margin:10px 0;">Total: ₹<span id="total">0</span></h3>
+    <h3 style="text-align:right; margin:15px 0; border-top:1px solid #eee; padding-top:10px;">Total Bill: ₹<span id="total">0</span></h3>
+    
     <form action="https://formspree.io/f/xrelkgbz" method="POST" onsubmit="return handleOrder(event)">
-        <input type="hidden" name="Order" id="hidden-data">
-        <input type="text" name="Name" placeholder="Name" required>
-        <textarea name="Address" placeholder="Address" rows="2" required></textarea>
-        <input type="text" name="Pin" placeholder="Pincode" pattern="[0-9]{6}" required>
-        <select name="Pay" id="pay-mode" onchange="document.getElementById('qr').classList.toggle('hidden', this.value==='')" required>
-            <option value="">Payment Method</option>
-            <option value="UPI">Full UPI</option>
-            <option value="COD">COD (30% Advance)</option>
+        <input type="hidden" name="Order_Details" id="hidden-data">
+        <input type="text" name="Customer_Name" placeholder="Full Name" required>
+        <textarea name="Address" placeholder="Delivery Address" rows="3" required></textarea>
+        <input type="text" name="Pincode" placeholder="6-Digit Pincode" pattern="[0-9]{6}" required>
+        
+        <select name="Payment_Method" id="pay-mode" onchange="toggleQR()" required>
+            <option value="">Select Payment Method</option>
+            <option value="UPI">Full UPI (Fast Delivery)</option>
+            <option value="COD">COD (30% Advance Mandatory)</option>
         </select>
-        <div id="qr" class="hidden" style="text-align:center;">
-            <p style="color:red; font-size:0.8rem;">Scan & Pay Advance/Full</p>
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=8460722331@okicici" alt="QR" style="margin:10px 0;">
-            <input type="text" name="UTR" placeholder="Transaction ID">
+
+        <div id="qr-section" class="hidden" style="text-align:center; padding:15px; border:1px dashed #00bcd4; border-radius:10px; margin:10px 0;">
+            <p style="color:#ff4d4d; font-weight:bold; margin-bottom:10px;">Scan QR to Pay</p>
+            <img id="upi-qr" src="" alt="UPI QR" style="width:180px; height:180px;">
+            <p style="font-size:0.8rem; margin:10px 0;">8460722331@okicici</p>
+            <input type="text" name="UTR_Number" placeholder="Enter Transaction ID (UTR)">
         </div>
+
         <button type="submit" class="btn btn-buy">Order on WhatsApp</button>
     </form>
 </div>
 
 <script>
+    // LIST OF ALL MASALAS WITH MULTIPLE REAL PHOTO LINKS
     const products = [
-        { name: "Premium Jeera", mrp: 750, img: ["https://images.unsplash.com/photo-1599311650742-99052069b2d9?w=300", "https://images.unsplash.com/photo-1626132647523-66f5bf380027?w=300"] },
-        { name: "Shahi Loang", mrp: 1100, img: ["https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=300", "https://images.unsplash.com/photo-1596450514735-244027706da5?w=300"] },
-        { name: "Green Elaichi", mrp: 3200, img: ["https://images.unsplash.com/photo-1601004890684-d8cbf643f5f2?w=300", "https://images.unsplash.com/photo-1599311650742-99052069b2d9?w=300"] },
-        { name: "Black Pepper", mrp: 950, img: ["https://images.unsplash.com/photo-1596450514735-244027706da5?w=300", "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=300"] }
+        { name: "Premium Jeera (Cumin)", mrp: 750, imgs: ["https://images.unsplash.com/photo-1599311650742-99052069b2d9?w=400", "https://images.unsplash.com/photo-1626132647523-66f5bf380027?w=400"] },
+        { name: "Shahi Loang (Cloves)", mrp: 1100, imgs: ["https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=400", "https://images.unsplash.com/photo-1596450514735-244027706da5?w=400"] },
+        { name: "Green Elaichi (Cardamom)", mrp: 3200, imgs: ["https://images.unsplash.com/photo-1601004890684-d8cbf643f5f2?w=400", "https://images.unsplash.com/photo-1599311650742-99052069b2d9?w=400"] },
+        { name: "Kaali Mirch (Black Pepper)", mrp: 950, imgs: ["https://images.unsplash.com/photo-1596450514735-244027706da5?w=400", "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=400"] },
+        { name: "Haldi Whole (Turmeric)", mrp: 400, imgs: ["https://images.unsplash.com/photo-1615485500704-8e990f9900f7?w=400", "https://images.unsplash.com/photo-1615484477778-ca3b77940c25?w=400"] },
+        { name: "Lal Mirchi (Dry Red Chilli)", mrp: 550, imgs: ["https://images.unsplash.com/photo-1588165171080-c89acfa5ee83?w=400", "https://images.unsplash.com/photo-1599311650742-99052069b2d9?w=400"] },
+        { name: "Dhaniya (Coriander Seeds)", mrp: 350, imgs: ["https://images.unsplash.com/photo-1599311650742-99052069b2d9?w=400"] }
     ];
 
     let cart = [];
+    const discount = 0.35; // 35% Wholesale Discount
+
+    // Back button handle
     window.onpopstate = () => document.getElementById('cart-modal').classList.add('hidden');
 
     function renderProducts() {
         const list = document.getElementById('masala-list');
         products.forEach((p, idx) => {
-            let sale = Math.round(p.mrp * 0.65);
-            let imgs = p.img.map((s, i) => `<img src="${s}" class="slider-img img-${idx} ${i===0?'active':''}" loading="lazy">`).join('');
+            let sale = Math.round(p.mrp * (1 - discount));
+            let imgHTML = p.imgs.map(s => `<img src="${s}" loading="lazy">`).join('');
             list.innerHTML += `
                 <div class="product-card">
-                    <div class="img-box">${imgs}<button class="slider-btn prev" onclick="move(${idx},-1)">❮</button><button class="slider-btn next" onclick="move(${idx},1)">❯</button></div>
-                    <div class="details"><p class="p-name">${p.name}</p><p class="p-price">₹${sale}/kg</p>
-                    <select id="q-${idx}"><option value="6">6kg</option><option value="10">10kg</option><option value="15">15kg</option></select>
-                    <button class="btn" onclick="add(${idx})">Add to Cart</button></div>
+                    <div class="img-box">${imgHTML}</div>
+                    <p class="scroll-hint">Swipe left to see more photos ↔</p>
+                    <div class="details">
+                        <p class="p-name">${p.name}</p>
+                        <p class="mrp">Market: ₹${p.mrp}/kg</p>
+                        <p class="p-price">Wholesale: ₹${sale}/kg</p>
+                        <select id="qty-${idx}"><option value="6">6kg (Min)</option><option value="10">10kg</option><option value="15">15kg</option></select>
+                        <button class="btn" onclick="add(${idx})">Add to Cart</button>
+                    </div>
                 </div>`;
         });
     }
 
-    function move(idx, s) {
-        let imgs = document.querySelectorAll(`.img-${idx}`);
-        let cur = Array.from(imgs).findIndex(i => i.classList.contains('active'));
-        imgs[cur].classList.remove('active');
-        imgs[(cur + s + imgs.length) % imgs.length].classList.add('active');
-    }
-
     function add(idx) {
-        const qty = document.getElementById(`q-${idx}`).value;
+        const qty = document.getElementById(`qty-${idx}`).value;
         const p = products[idx];
-        cart.push({ n: p.name, q: qty, t: Math.round(p.mrp * 0.65) * qty });
+        const sale = Math.round(p.mrp * (1 - discount));
+        cart.push({ n: p.name, q: qty, t: sale * qty });
         document.getElementById('count').innerText = cart.length;
-        alert("Added!");
+        alert(p.name + " Added to Cart!");
     }
 
     function openCart() {
-        if(!cart.length) return alert("Empty!");
+        if(!cart.length) return alert("Your cart is empty!");
         history.pushState({p:'c'}, "", "#cart");
         document.getElementById('cart-modal').classList.remove('hidden');
-        let h = ""; let t = 0;
-        cart.forEach((i, idx) => { h += `<p style="font-size:0.9rem; margin-bottom:5px;">📦 ${i.n} (${i.q}kg) - ₹${i.t} <span onclick="del(${idx})" style="color:red; float:right;">✖</span></p>`; t += i.t; });
-        document.getElementById('items-list').innerHTML = h;
-        document.getElementById('total').innerText = t;
+        let html = ""; let total = 0;
+        cart.forEach((i, idx) => { 
+            html += `<p style="margin-bottom:8px;">📦 ${i.n} (${i.q}kg) - ₹${i.t} <span onclick="del(${idx})" style="color:red; float:right; font-weight:bold;">Remove</span></p>`; 
+            total += i.t; 
+        });
+        document.getElementById('items-list').innerHTML = html;
+        document.getElementById('total').innerText = total;
         document.getElementById('hidden-data').value = JSON.stringify(cart);
     }
 
     function del(idx) { cart.splice(idx,1); if(!cart.length) window.history.back(); else openCart(); document.getElementById('count').innerText = cart.length; }
 
-    function handleOrder() {
-        const msg = encodeURIComponent("New Wholesale Order. Details sent to email.");
-        setTimeout(() => location.href = "https://wa.me/918460722331?text=" + msg, 800);
+    function toggleQR() {
+        const mode = document.getElementById('pay-mode').value;
+        const qrSection = document.getElementById('qr-section');
+        if(mode !== "") {
+            qrSection.classList.remove('hidden');
+            // QR Generator Link (Replace your UPI ID here)
+            const myUPI = "sorthivinay0047@oksbi"; 
+            const totalAmt = document.getElementById('total').innerText;
+            document.getElementById('upi-qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=${myUPI}&pn=WholesaleMasala&am=&cu=INR`;
+        } else {
+            qrSection.classList.add('hidden');
+        }
+    }
+
+    function handleOrder(e) {
+        const name = document.querySelector('input[name="Customer_Name"]').value;
+        const total = document.getElementById('total').innerText;
+        const msg = encodeURIComponent(`Hello Wholesale Masala World,\nI want to place an order.\nName: ${name}\nTotal Amount: ₹${total}\nDetails are submitted on the website.`);
+        setTimeout(() => {
+            window.location.href = `https://wa.me/918460722331?text=${msg}`;
+        }, 1000);
         return true;
     }
 </script>
