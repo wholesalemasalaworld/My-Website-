@@ -16,13 +16,12 @@
         .details { padding: 12px; }
         .p-name { color: #ff4d4d; font-size: 1.2rem; font-weight: bold; }
         .p-price { color: #58d68d; font-size: 1.3rem; font-weight: bold; margin: 5px 0; }
-        .mrp { text-decoration: line-through; color: #888; font-size: 0.9rem; }
         select, input, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #00bcd4; border-radius: 8px; font-size: 16px; }
         .btn { background: #1a2a33; color: #fff; border: none; padding: 12px; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; }
-        .btn-buy { background: #58d68d; padding: 15px; font-size: 1.1rem; margin-top: 10px; }
+        .btn-buy { background: #58d68d; padding: 15px; font-size: 1.1rem; margin-top: 10px; color: #000; }
         .cart-bar { position: fixed; bottom: 15px; right: 15px; background: #00bcd4; color: #fff; padding: 12px 20px; border-radius: 50px; font-weight: bold; z-index: 99; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
         #cart-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 200; overflow-y: auto; padding: 15px; }
-        .scroll-hint { font-size: 0.7rem; color: #888; text-align: center; padding: 2px; }
+        .accounts-note { background: #fff9e6; border: 1px solid #f1c40f; padding: 15px; border-radius: 10px; margin: 15px 0; text-align: left; }
     </style>
 </head>
 <body onload="renderProducts()">
@@ -36,120 +35,102 @@
 </div>
 
 <div id="cart-modal" class="hidden">
-    <button onclick="window.history.back()" style="background:none; border:none; color:#00bcd4; font-size:1rem; padding:10px 0;">← Back to Shopping</button>
-    <h2 style="margin:10px 0;">Your Cart</h2>
+    <button onclick="window.history.back()" style="background:none; border:none; color:#00bcd4; font-size:1rem; padding:10px 0;">← Back</button>
+    <h2 style="margin:10px 0;">Finalize Order</h2>
     <div id="items-list"></div>
-    <h3 style="text-align:right; margin:15px 0; border-top:1px solid #eee; padding-top:10px;">Total Bill: ₹<span id="total">0</span></h3>
+    <h3 style="text-align:right; margin:15px 0; border-top:1px solid #eee; padding-top:10px;">Total: ₹<span id="total">0</span></h3>
     
-    <form action="https://formspree.io/f/xrelkgbz" method="POST" onsubmit="return handleOrder(event)">
-        <input type="hidden" name="Order_Details" id="hidden-data">
-        <input type="text" name="Customer_Name" placeholder="Full Name" required>
-        <textarea name="Address" placeholder="Delivery Address" rows="3" required></textarea>
-        <input type="text" name="Pincode" placeholder="6-Digit Pincode" pattern="[0-9]{6}" required>
+    <div class="accounts-note">
+        <p>✅ <strong>COD & UPI Available</strong></p>
+        <p>📞 Aapko abhi Accounts Dept. se connect kiya jayega.</p>
+    </div>
+
+    <form id="orderForm">
+        <input type="text" id="custName" name="Name" placeholder="Full Name" required>
+        <textarea id="custAddr" name="Address" placeholder="Delivery Address" rows="3" required></textarea>
+        <input type="text" id="custPin" name="Pincode" placeholder="Pincode" pattern="[0-9]{6}" required>
         
-        <select name="Payment_Method" id="pay-mode" onchange="toggleQR()" required>
-            <option value="">Select Payment Method</option>
-            <option value="UPI">Full UPI (Fast Delivery)</option>
-            <option value="COD">COD (30% Advance Mandatory)</option>
-        </select>
-
-        <div id="qr-section" class="hidden" style="text-align:center; padding:15px; border:1px dashed #00bcd4; border-radius:10px; margin:10px 0;">
-            <p style="color:#ff4d4d; font-weight:bold; margin-bottom:10px;">Scan QR to Pay</p>
-            <img id="upi-qr" src="" alt="UPI QR" style="width:180px; height:180px;">
-            <p style="font-size:0.8rem; margin:10px 0;">8460722331@okicici</p>
-            <input type="text" name="UTR_Number" placeholder="Enter Transaction ID (UTR)">
-        </div>
-
-        <button type="submit" class="btn btn-buy">Order on WhatsApp</button>
+        <button type="submit" id="submitBtn" class="btn btn-buy">Send & Connect to WhatsApp</button>
     </form>
 </div>
 
 <script>
-    // LIST OF ALL MASALAS WITH MULTIPLE REAL PHOTO LINKS
     const products = [
-        { name: "Premium Jeera (Cumin)", mrp: 750, imgs: ["https://images.unsplash.com/photo-1599311650742-99052069b2d9?w=400", "https://images.unsplash.com/photo-1626132647523-66f5bf380027?w=400"] },
-        { name: "Shahi Loang (Cloves)", mrp: 1100, imgs: ["https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=400", "https://images.unsplash.com/photo-1596450514735-244027706da5?w=400"] },
-        { name: "Green Elaichi (Cardamom)", mrp: 3200, imgs: ["https://images.unsplash.com/photo-1601004890684-d8cbf643f5f2?w=400", "https://images.unsplash.com/photo-1599311650742-99052069b2d9?w=400"] },
-        { name: "Kaali Mirch (Black Pepper)", mrp: 950, imgs: ["https://images.unsplash.com/photo-1596450514735-244027706da5?w=400", "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=400"] },
-        { name: "Haldi Whole (Turmeric)", mrp: 400, imgs: ["https://images.unsplash.com/photo-1615485500704-8e990f9900f7?w=400", "https://images.unsplash.com/photo-1615484477778-ca3b77940c25?w=400"] },
-        { name: "Lal Mirchi (Dry Red Chilli)", mrp: 550, imgs: ["https://images.unsplash.com/photo-1588165171080-c89acfa5ee83?w=400", "https://images.unsplash.com/photo-1599311650742-99052069b2d9?w=400"] },
-        { name: "Dhaniya (Coriander Seeds)", mrp: 350, imgs: ["https://images.unsplash.com/photo-1599311650742-99052069b2d9?w=400"] }
+        { name: "Premium Jeera", mrp: 750, imgs: ["https://images.unsplash.com/photo-1599311650742-99052069b2d9?w=400"] },
+        { name: "Shahi Loang", mrp: 1100, imgs: ["https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=400"] },
+        { name: "Green Elaichi", mrp: 3200, imgs: ["https://images.unsplash.com/photo-1601004890684-d8cbf643f5f2?w=400"] },
+        { name: "Kaali Mirch", mrp: 950, imgs: ["https://images.unsplash.com/photo-1596450514735-244027706da5?w=400"] }
     ];
 
     let cart = [];
-    const discount = 0.35; // 35% Wholesale Discount
-
-    // Back button handle
     window.onpopstate = () => document.getElementById('cart-modal').classList.add('hidden');
 
     function renderProducts() {
         const list = document.getElementById('masala-list');
         products.forEach((p, idx) => {
-            let sale = Math.round(p.mrp * (1 - discount));
-            let imgHTML = p.imgs.map(s => `<img src="${s}" loading="lazy">`).join('');
-            list.innerHTML += `
-                <div class="product-card">
-                    <div class="img-box">${imgHTML}</div>
-                    <p class="scroll-hint">Swipe left to see more photos ↔</p>
-                    <div class="details">
-                        <p class="p-name">${p.name}</p>
-                        <p class="mrp">Market: ₹${p.mrp}/kg</p>
-                        <p class="p-price">Wholesale: ₹${sale}/kg</p>
-                        <select id="qty-${idx}"><option value="6">6kg (Min)</option><option value="10">10kg</option><option value="15">15kg</option></select>
-                        <button class="btn" onclick="add(${idx})">Add to Cart</button>
-                    </div>
-                </div>`;
+            let sale = Math.round(p.mrp * 0.65);
+            list.innerHTML += `<div class="product-card">
+                <div class="img-box"><img src="${p.imgs[0]}" loading="lazy"></div>
+                <div class="details"><p class="p-name">${p.name}</p><p class="p-price">₹${sale}/kg</p>
+                <select id="qty-${idx}"><option value="6">6kg</option><option value="10">10kg</option></select>
+                <button class="btn" onclick="add(${idx})">Add to Order</button></div></div>`;
         });
     }
 
     function add(idx) {
         const qty = document.getElementById(`qty-${idx}`).value;
         const p = products[idx];
-        const sale = Math.round(p.mrp * (1 - discount));
-        cart.push({ n: p.name, q: qty, t: sale * qty });
+        cart.push({ n: p.name, q: qty, t: Math.round(p.mrp * 0.65) * qty });
         document.getElementById('count').innerText = cart.length;
-        alert(p.name + " Added to Cart!");
+        alert("Added!");
     }
 
     function openCart() {
-        if(!cart.length) return alert("Your cart is empty!");
-        history.pushState({p:'c'}, "", "#cart");
+        if(!cart.length) return alert("Cart empty!");
+        history.pushState({p:'c'}, "", "#order");
         document.getElementById('cart-modal').classList.remove('hidden');
-        let html = ""; let total = 0;
-        cart.forEach((i, idx) => { 
-            html += `<p style="margin-bottom:8px;">📦 ${i.n} (${i.q}kg) - ₹${i.t} <span onclick="del(${idx})" style="color:red; float:right; font-weight:bold;">Remove</span></p>`; 
-            total += i.t; 
-        });
-        document.getElementById('items-list').innerHTML = html;
-        document.getElementById('total').innerText = total;
-        document.getElementById('hidden-data').value = JSON.stringify(cart);
+        let h = ""; let t = 0;
+        cart.forEach((i, idx) => { h += `<p>✅ ${i.n} (${i.q}kg) <span onclick="del(${idx})" style="color:red; float:right;">✖</span></p>`; t += i.t; });
+        document.getElementById('items-list').innerHTML = h;
+        document.getElementById('total').innerText = t;
     }
 
-    function del(idx) { cart.splice(idx,1); if(!cart.length) window.history.back(); else openCart(); document.getElementById('count').innerText = cart.length; }
+    function del(idx) { cart.splice(idx,1); if(!cart.length) window.history.back(); else openCart(); }
 
-    function toggleQR() {
-        const mode = document.getElementById('pay-mode').value;
-        const qrSection = document.getElementById('qr-section');
-        if(mode !== "") {
-            qrSection.classList.remove('hidden');
-            // QR Generator Link (Replace your UPI ID here)
-            const myUPI = "sorthivinay0047@oksbi"; 
-            const totalAmt = document.getElementById('total').innerText;
-            document.getElementById('upi-qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=${myUPI}&pn=WholesaleMasala&am=&cu=INR`;
-        } else {
-            qrSection.classList.add('hidden');
-        }
-    }
+    // EMAIL + WHATSAPP LOGIC
+    document.getElementById('orderForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('submitBtn');
+        btn.innerText = "Processing Order...";
+        btn.disabled = true;
 
-    function handleOrder(e) {
-        const name = document.querySelector('input[name="Customer_Name"]').value;
+        const name = document.getElementById('custName').value;
+        const addr = document.getElementById('custAddr').value;
+        const pin = document.getElementById('custPin').value;
         const total = document.getElementById('total').innerText;
-        const msg = encodeURIComponent(`Hello Wholesale Masala World,\nI want to place an order.\nName: ${name}\nTotal Amount: ₹${total}\nDetails are submitted on the website.`);
-        setTimeout(() => {
+        const orderSummary = cart.map(i => `${i.n} (${i.q}kg)`).join(', ');
+
+        // 1. Send Email via Formspree
+        fetch('https://formspree.io/f/xrelkgbz', {
+            method: 'POST',
+            body: JSON.stringify({
+                Customer_Name: name,
+                Address: addr,
+                Pincode: pin,
+                Order_Items: orderSummary,
+                Total_Estimate: total
+            }),
+            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+        }).then(response => {
+            // 2. Redirect to WhatsApp after Email is sent
+            const msg = encodeURIComponent(`Naya Order Aaya Hai!\n\nNaam: ${name}\nAddress: ${addr}\nOrder: ${orderSummary}\nTotal: ₹${total}\n\nAccounts Dept. se jodein.`);
             window.location.href = `https://wa.me/918460722331?text=${msg}`;
-        }, 1000);
-        return true;
-    }
+        }).catch(error => {
+            alert("Error sending order. Please try again.");
+            btn.disabled = false;
+            btn.innerText = "Connect with Accounts Dept.";
+        });
+    });
 </script>
 </body>
 </html>
